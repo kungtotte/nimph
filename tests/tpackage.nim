@@ -144,8 +144,12 @@ suite "package":
       one23 = newRelease("1.2.3")
     for req in works.items:
       check req.isSatisfiedBy one23
+      if req.operator notin Wildlings:
+        check crudeComparison(req.release, req.operator, one23)
     for req in breaks.items:
       check not req.isSatisfiedBy one23
+      if req.operator notin Wildlings:
+        check not crudeComparison(req.release, req.operator, one23)
 
   test "parse version loosely":
     let
