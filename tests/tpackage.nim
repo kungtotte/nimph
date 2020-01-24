@@ -12,6 +12,10 @@ import nimph/project
 import nimph/version
 import nimph/requirement
 
+proc v(s: string): Version =
+  let parsed = parseVersionLoosely(s)
+  result = parsed.get.version
+
 const
   # how we'll render a release requirement like "package"
   anyRelease = "*"
@@ -109,7 +113,11 @@ suite "package":
     let
       works = [
         newRequirement("a", Equal, "1.2.3"),
+        newRequirement("a", Under, "1.2.4"),
+        newRequirement("a", Over, "1.2.2"),
+        newRequirement("a", AtLeast, "1.2.2"),
         newRequirement("a", AtLeast, "1.2.3"),
+        newRequirement("a", NotMore, "1.2.4"),
         newRequirement("a", NotMore, "1.2.3"),
         newRequirement("a", Caret, "1"),
         newRequirement("a", Caret, "1.2"),
@@ -120,6 +128,10 @@ suite "package":
       ]
       breaks = [
         newRequirement("a", Equal, "1.2.4"),
+        newRequirement("a", Under, "1.2.3"),
+        newRequirement("a", Under, "1.2.2"),
+        newRequirement("a", Over, "1.2.3"),
+        newRequirement("a", Over, "1.2.4"),
         newRequirement("a", AtLeast, "1.2.4"),
         newRequirement("a", NotMore, "1.2.2"),
         newRequirement("a", Caret, "2"),

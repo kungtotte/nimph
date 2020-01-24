@@ -41,9 +41,61 @@ proc isValid*(req: Requirement): bool =
       result = req.release.kind in {Tag, Equal}
     # else it can only be a relative comparison to a complete version spec
     else:
-      result = req.release.kind in {Equal}
+      result = req.release.kind in {Wild, Equal}
+    if not result:
+      warn &"invalid requirement: {req}"
+      warn &"release: {req.release}"
 
-proc isSatisfiedBy(requirement: Requirement; version: Version): bool =
+proc crudeComparison*(spec: Release; op: Operator; ver: Version): bool =
+  ## convert nicely-refined releases into crude version comparisons
+  assert ver.isValid
+  assert spec.isValid
+  let
+    wants = block:
+      if spec.isSpecific:
+        spec.specifically
+      else:
+        spec.effectively
+  case op:
+  of Equal:
+    block:
+      # this block essentially ensures that we accept any
+      # version supplied against an (empty) wildcard *.*.*
+      if spec.kind == Wild:
+        if spec.accepts.major.isNone:
+          result = true
+          break
+      # here we are back to using equality against a potential wildcard
+      {.warning: "equality comparison for possible wildcard?".}
+      result = ver == wants
+  of AtLeast:
+    result = ver > wants or ver == wants
+  of NotMore:
+    result = ver < wants or ver == wants
+  of Under:
+    result = ver < wants
+  of Over:
+    result = ver > wants
+  of Tag, Tilde, Caret, Wild:
+    raise newException(Defect, "inconceivable!")
+
+proc crudeComparison*(spec: Release; op: Operator; target: Release): bool =
+  ## convert nicely-refined releases into crude version comparisons
+  assert spec.isValid
+  var
+    version: Version
+  block:
+    if target.isSpecific:
+      version = target.specifically
+    else:
+      version = target.effectively
+      if not version.isValid:
+        # *.*.* -- just short-circuit here for now
+        result = true
+        break
+    result = crudeComparison(spec, op, version)
+
+proc isSatisfiedBy*(requirement: Requirement; version: Version): bool =
   ## true if the version satisfies the requirement
   let
     op = requirement.operator
