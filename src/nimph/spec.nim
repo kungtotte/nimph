@@ -125,10 +125,13 @@ proc pathToImport*(path: string): string =
 
 proc normalizeUrl*(uri: Uri): Uri =
   result = uri
-  if result.scheme == "" and result.path.startsWith("git@github.com:"):
-    result.path = result.path["git@github.com:".len .. ^1]
-    result.username = "git"
-    result.hostname = "github.com"
+  if result.scheme == "" and result.path.contains("@"):
+    let
+      usersep = result.path.find("@")
+      pathsep = result.path.find(":")
+    result.path = uri.path[pathsep+1 .. ^1]
+    result.username = uri.path[0 ..< usersep]
+    result.hostname = uri.path[usersep+1 ..< pathsep]
     result.scheme = "ssh"
 
 proc convertToGit*(uri: Uri): Uri =
